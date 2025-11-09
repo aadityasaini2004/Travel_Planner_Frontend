@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SelectBudgetOption, SelectTravelesList } from "@/constants/options";
 import { useEffect, useState } from "react";
+import { useUser } from '@clerk/clerk-react';
+import axios from 'axios';
 
 function CreateTrip() {
   const [formData, setFormData] = useState({
@@ -15,6 +17,9 @@ function CreateTrip() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [tripPlan, setTripPlan] = useState("");
+
+  // Clerk user hook
+  const { user, isSignedIn } = useUser();
 
   const handleInputChange = (fieldName, value) => {
     setError("");
@@ -113,6 +118,57 @@ function CreateTrip() {
     }
   };
 
+  // Save Trip Function
+  const onSaveTrip = async () => {
+    if (!isSignedIn || !user) {
+      setError('Please sign in to save trips');
+      return;
+    }
+
+    if (!tripPlan) {
+      setError('Please generate a trip first');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // First, sync user with backend
+      await axios.post('http://localhost:5000/api/auth/sync', {
+        clerkId: user.id,
+        email: user.primaryEmailAddress?.emailAddress || 'user@example.com',
+        name: user.fullName || user.firstName || 'User'
+      });
+
+      // Now save the trip
+      const tripData = {
+        clerkId: user.id,
+        destination: {
+          displayName: formData.location.display_name,
+          placeId: formData.location.place_id
+        },
+        days: parseInt(formData.days),
+        budget: formData.budget,
+        tripType: formData.tripType,
+        itinerary: tripPlan
+      };
+
+      const response = await axios.post(
+        'http://localhost:5000/api/trips/save',
+        tripData
+      );
+
+      if (response.data.success) {
+        alert('Trip saved successfully! 🎉');
+      }
+    } catch (err) {
+      console.error('Save Error:', err);
+      setError('Failed to save trip. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="sm:px-10 md:px-32 lg:px-56 xl:px-72 px-5 mt-10">
       <h2 className="font-bold text-3xl">Tell Us Your Travel Preference. 🏝️</h2>
@@ -206,10 +262,16 @@ function CreateTrip() {
         <p className="text-red-500 text-center mt-4 font-bold">{error}</p>
       )}
 
-      <div className="my-10 justify-center flex">
+      <div className="my-10 justify-center flex gap-5">
         <Button onClick={onGenerateTrip} disabled={loading}>
           {loading ? "Generating..." : "Generate Trip"}
         </Button>
+        
+        {tripPlan && (
+          <Button onClick={onSaveTrip} disabled={loading} variant="outline">
+            {loading ? "Saving..." : "Save Trip"}
+          </Button>
+        )}
       </div>
 
       {tripPlan && (
