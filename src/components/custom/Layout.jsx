@@ -1,12 +1,14 @@
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
-
+import PageTransition from './PageTransition';
 
 function Layout() {
   return (
     <div>
       <Header />
-      <Outlet />
+      <PageTransition>
+        <Outlet />
+      </PageTransition>
     </div>
   );
 }

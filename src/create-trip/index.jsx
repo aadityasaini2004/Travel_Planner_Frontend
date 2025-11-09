@@ -18,7 +18,6 @@ function CreateTrip() {
   const [loading, setLoading] = useState(false);
   const [tripPlan, setTripPlan] = useState("");
 
-  // Clerk user hook
   const { user, isSignedIn } = useUser();
 
   const handleInputChange = (fieldName, value) => {
@@ -55,12 +54,7 @@ function CreateTrip() {
 
   const onGenerateTrip = async () => {
     setError("");
-    if (
-      !formData.location ||
-      !formData.days ||
-      !formData.budget ||
-      !formData.tripType
-    ) {
+    if (!formData.location || !formData.days || !formData.budget || !formData.tripType) {
       setError("Please fill all the details first.");
       return;
     }
@@ -80,17 +74,11 @@ function CreateTrip() {
         return;
       }
 
-      // Gemini REST API endpoint
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
       const prompt = `Generate a detailed travel itinerary for a trip to ${formData.location.display_name}. The trip duration is ${formData.days} days. The budget for this trip is ${formData.budget}. This is a ${formData.tripType} trip. Format the output clearly with headings for each day.`;
 
       const requestBody = {
-        contents: [
-          {
-            parts: [{ text: prompt }],
-          },
-        ],
+        contents: [{ parts: [{ text: prompt }] }],
       };
 
       const response = await fetch(url, {
@@ -101,7 +89,6 @@ function CreateTrip() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Gemini API Error:", errorData);
         setError(`API Error: ${errorData.error?.message || "Unknown error"}`);
         setLoading(false);
         return;
@@ -111,20 +98,17 @@ function CreateTrip() {
       const plan = data.candidates[0].content.parts[0].text;
       setTripPlan(plan);
     } catch (err) {
-      console.error("Fetch Error:", err);
       setError("A network error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Save Trip Function
   const onSaveTrip = async () => {
     if (!isSignedIn || !user) {
       setError('Please sign in to save trips');
       return;
     }
-
     if (!tripPlan) {
       setError('Please generate a trip first');
       return;
@@ -133,14 +117,12 @@ function CreateTrip() {
     try {
       setLoading(true);
       
-      // First, sync user with backend
       await axios.post('http://localhost:5000/api/auth/sync', {
         clerkId: user.id,
         email: user.primaryEmailAddress?.emailAddress || 'user@example.com',
         name: user.fullName || user.firstName || 'User'
       });
 
-      // Now save the trip
       const tripData = {
         clerkId: user.id,
         destination: {
@@ -153,16 +135,12 @@ function CreateTrip() {
         itinerary: tripPlan
       };
 
-      const response = await axios.post(
-        'http://localhost:5000/api/trips/save',
-        tripData
-      );
+      const response = await axios.post('http://localhost:5000/api/trips/save', tripData);
 
       if (response.data.success) {
         alert('Trip saved successfully! 🎉');
       }
     } catch (err) {
-      console.error('Save Error:', err);
       setError('Failed to save trip. Please try again.');
     } finally {
       setLoading(false);
@@ -170,118 +148,153 @@ function CreateTrip() {
   };
 
   return (
-    <div className="sm:px-10 md:px-32 lg:px-56 xl:px-72 px-5 mt-10">
-      <h2 className="font-bold text-3xl">Tell Us Your Travel Preference. 🏝️</h2>
-      <p className="mt-3 text-gray-500 text-xl">
-        Just provide some basic information...
-      </p>
+    <div className="min-h-screen bg-black pt-24 pb-20">
+      {/* Background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-purple-900/20 via-pink-900/20 to-black pointer-events-none" />
 
-      <div className="mt-16 flex flex-col gap-10">
-        <div className="relative">
-          <h2 className="text-xl font-bold mb-3">
-            What is your destination of choice?
+      <div className="relative z-10 sm:px-10 md:px-32 lg:px-56 xl:px-72 px-5">
+        {/* Title */}
+        <div className="text-center mb-16">
+          <h2 className="text-white font-black text-5xl md:text-6xl mb-4">
+            Plan Your Trip 🏝️
           </h2>
-          <Input
-            value={query}
-            onChange={(e) => {
-              setError("");
-              setQuery(e.target.value);
-            }}
-            placeholder="e.g., Paris, Mumbai..."
-          />
-          {suggestions.length > 0 && (
-            <ul className="absolute bg-white border rounded-lg shadow-md w-full mt-1 z-50">
-              {suggestions.map((place) => (
-                <li
-                  key={place.place_id}
-                  onClick={() => handleSelectSuggestion(place)}
-                  className="p-3 hover:bg-gray-100 cursor-pointer"
+          <p className="text-gray-400 text-xl">Fill in the details below</p>
+        </div>
+
+        <div className="space-y-10">
+          {/* Location */}
+          <div className="relative">
+            <label className="text-white text-xl font-bold mb-3 block">
+              Destination
+            </label>
+            <Input
+              value={query}
+              onChange={(e) => {
+                setError("");
+                setQuery(e.target.value);
+              }}
+              placeholder="e.g., Paris, Mumbai..."
+              className="p-6 text-lg bg-white/10 border-2 border-white/20 focus:border-purple-500 rounded-2xl text-white placeholder:text-gray-500"
+            />
+            
+            {suggestions.length > 0 && (
+              <div className="absolute bg-black/95 border-2 border-white/20 rounded-2xl w-full mt-2 z-50 max-h-60 overflow-y-auto">
+                {suggestions.map((place) => (
+                  <div
+                    key={place.place_id}
+                    onClick={() => handleSelectSuggestion(place)}
+                    className="p-4 cursor-pointer border-b border-white/10 last:border-b-0 hover:bg-purple-500/20 text-white"
+                  >
+                    {place.display_name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Days */}
+          <div>
+            <label className="text-white text-xl font-bold mb-3 block">
+              Number of Days (1-5)
+            </label>
+            <Input
+              type="number"
+              placeholder="Ex. 3"
+              value={formData.days}
+              onChange={(e) => handleInputChange("days", e.target.value)}
+              className="p-6 text-lg bg-white/10 border-2 border-white/20 focus:border-purple-500 rounded-2xl text-white placeholder:text-gray-500"
+            />
+          </div>
+
+          {/* Budget */}
+          <div>
+            <label className="text-white text-xl font-bold mb-4 block">
+              Budget
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {SelectBudgetOption.map((item) => (
+                <div
+                  key={item.title}
+                  onClick={() => handleInputChange("budget", item.title)}
+                  className={`p-6 rounded-2xl cursor-pointer transition-all ${
+                    formData.budget === item.title
+                      ? 'bg-purple-600/30 border-2 border-purple-500'
+                      : 'bg-white/10 border-2 border-white/20 hover:border-purple-500/50'
+                  }`}
                 >
-                  {place.display_name}
-                </li>
+                  <div className="text-5xl mb-3">{item.icon}</div>
+                  <h3 className="text-white font-bold text-xl mb-2">{item.title}</h3>
+                  <p className="text-gray-400 text-sm">{item.desc}</p>
+                </div>
               ))}
-            </ul>
+            </div>
+          </div>
+
+          {/* Trip Type */}
+          <div>
+            <label className="text-white text-xl font-bold mb-4 block">
+              Who's Coming?
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {SelectTravelesList.map((item) => (
+                <div
+                  key={item.title}
+                  onClick={() => handleInputChange("tripType", item.title)}
+                  className={`p-6 rounded-2xl cursor-pointer transition-all ${
+                    formData.tripType === item.title
+                      ? 'bg-purple-600/30 border-2 border-purple-500'
+                      : 'bg-white/10 border-2 border-white/20 hover:border-purple-500/50'
+                  }`}
+                >
+                  <div className="text-5xl mb-3">{item.icon}</div>
+                  <h3 className="text-white font-bold text-lg mb-1">{item.title}</h3>
+                  <p className="text-gray-400 text-xs">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mt-8 p-4 bg-red-500/20 border-2 border-red-500 rounded-2xl">
+            <p className="text-red-300 text-center font-bold">{error}</p>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="mt-12 flex justify-center gap-4 flex-wrap">
+          <Button
+            onClick={onGenerateTrip}
+            disabled={loading}
+            className="px-10 py-6 text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-full font-bold"
+          >
+            {loading ? "Generating..." : "Generate Trip ✨"}
+          </Button>
+
+          {tripPlan && (
+            <Button
+              onClick={onSaveTrip}
+              disabled={loading}
+              className="px-10 py-6 text-lg bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 rounded-full font-bold"
+            >
+              {loading ? "Saving..." : "Save Trip 💾"}
+            </Button>
           )}
         </div>
-        <div>
-          <h2 className="text-xl font-bold my-3">
-            How many days do you want to go?
-          </h2>
-          <Input
-            type="number"
-            placeholder="Ex. 3"
-            value={formData.days}
-            onChange={(e) => handleInputChange("days", e.target.value)}
-          />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold my-3">What is your budget?</h2>
-          <div className="grid grid-cols-3 gap-5 mt-5">
-            {SelectBudgetOption.map((item) => (
-              <div
-                key={item.title}
-                onClick={() => handleInputChange("budget", item.title)}
-                className={`p-4 border rounded-lg hover:shadow-lg cursor-pointer transition-all ${
-                  formData.budget === item.title
-                    ? "shadow-2xl border-purple-600"
-                    : "hover:border-gray-300"
-                }`}
-              >
-                <h2 className="text-4xl">{item.icon}</h2>
-                <h2 className="font-bold text-lg">{item.title}</h2>
-                <h2 className="text-sm text-gray-500">{item.desc}</h2>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <h2 className="text-xl font-bold my-3">
-            What do you plan on your next Adventure?
-          </h2>
-          <div className="grid grid-cols-3 gap-5 mt-5">
-            {SelectTravelesList.map((item) => (
-              <div
-                key={item.title}
-                onClick={() => handleInputChange("tripType", item.title)}
-                className={`p-4 border rounded-lg hover:shadow-lg cursor-pointer transition-all ${
-                  formData.tripType === item.title
-                    ? "shadow-2xl border-purple-600"
-                    : "hover:border-gray-300"
-                }`}
-              >
-                <h2 className="text-4xl">{item.icon}</h2>
-                <h2 className="font-bold text-lg">{item.title}</h2>
-                <h2 className="text-sm text-gray-500">{item.desc}</h2>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
-      {error && (
-        <p className="text-red-500 text-center mt-4 font-bold">{error}</p>
-      )}
-
-      <div className="my-10 justify-center flex gap-5">
-        <Button onClick={onGenerateTrip} disabled={loading}>
-          {loading ? "Generating..." : "Generate Trip"}
-        </Button>
-        
+        {/* Trip Plan */}
         {tripPlan && (
-          <Button onClick={onSaveTrip} disabled={loading} variant="outline">
-            {loading ? "Saving..." : "Save Trip"}
-          </Button>
+          <div className="mt-16 p-8 border-2 border-purple-500/30 rounded-3xl bg-white/5">
+            <h2 className="text-3xl font-bold mb-6 text-purple-400">
+              Your Trip Plan ✨
+            </h2>
+            <div className="whitespace-pre-wrap text-gray-300 leading-relaxed">
+              {tripPlan}
+            </div>
+          </div>
         )}
       </div>
-
-      {tripPlan && (
-        <div className="mt-10 p-5 border rounded-lg bg-gray-50">
-          <h2 className="text-2xl font-bold mb-4">
-            Your AI-Generated Trip Plan
-          </h2>
-          <p className="whitespace-pre-wrap">{tripPlan}</p>
-        </div>
-      )}
     </div>
   );
 }
