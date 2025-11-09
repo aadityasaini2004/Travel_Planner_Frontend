@@ -1,33 +1,31 @@
-import React from "react";
-import { Button } from "../ui/button";
-import {
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/clerk-react";
+import React from 'react'
+import { Button } from '../ui/button'
+import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react'
+import { useNavigate } from 'react-router-dom'
 
 function Header() {
-  return (
-    <div className="p-3 shadow-sm flex justify-between items-center px-5">
-      <img src="/logo.svg" alt="logo" />
+  const navigate = useNavigate();
 
-      <div className="flex gap-3 items-center">
-        {/* Agar user logged OUT hai */}
+  return (
+    <div className='p-3 shadow-sm flex justify-between items-center px-5'>
+      <img src='/logo.svg' alt='logo' className='cursor-pointer' onClick={() => navigate('/')} />
+      
+      <div className='flex gap-3 items-center'>
         <SignedOut>
           <SignInButton mode="modal">
             <Button>Sign In</Button>
           </SignInButton>
         </SignedOut>
-
-        {/* Agar user logged IN hai */}
+        
         <SignedIn>
-          <Button variant="outline">My Trips</Button>
+          <Button variant="outline" onClick={() => navigate('/my-trips')}>
+            My Trips
+          </Button>
           <UserButton afterSignOutUrl="/" />
         </SignedIn>
       </div>
     </div>
-  );
+  )
 }
 
-export default Header;
+export default Header

@@ -4,10 +4,11 @@ import './index.css'
 import App from './App.jsx'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import CreateTrip from './create-trip'
-import Header from './components/custom/Header'
 import { ClerkProvider } from '@clerk/clerk-react'
+import MyTrips from './my-trips'
+import Layout from './components/custom/Layout'
+import ViewTrip from './view-trip/index.jsx'
 
-// Clerk Publishable Key
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
 if (!PUBLISHABLE_KEY) {
@@ -16,19 +17,31 @@ if (!PUBLISHABLE_KEY) {
 
 const router = createBrowserRouter([
   {
-    path: '/',
-    element: <App />
-  },
-  {
-    path: '/create-trip',
-    element: <CreateTrip />
+    element: <Layout />,  // Parent layout with Header
+    children: [
+      {
+        path: '/',
+        element: <App />
+      },
+      {
+        path: '/create-trip',
+        element: <CreateTrip />
+      },
+      {
+        path: '/my-trips',
+        element: <MyTrips />
+      },
+      {
+        path: '/view-trip',
+        element: <ViewTrip />
+      }
+    ]
   }
 ])
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
-      <Header />
       <RouterProvider router={router} />
     </ClerkProvider>
   </StrictMode>,
